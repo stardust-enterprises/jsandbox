@@ -9,6 +9,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] programArgs) {
+        //TODO: permission options
         CliArguments args = new CliArguments();
         CommandLine.ParseResult result;
         try {

@@ -10,7 +10,10 @@ This CLI takes a very similar approach to [Deno](https://deno.com/) in terms of 
 java -jar jsandbox-cli.jar \
     --classpath=/path/to/target.jar:/path/to/other/target.jar \
     --processors=/path/to/processcors
-    org.example.Main
+    --allow-all \
+    org.example.Main \
+    argument1 \
+    argument2
 ```
 
 ## Options
@@ -36,6 +39,7 @@ This is used to prevent sandboxed jarfiles to declare their own processors and t
     <code>Permission Options</code>
 </summary>
 
+**THIS IS STILL WIP**.
 The following options are used to configure the permissions of the sandboxed application.
 
 ### `--allow-all`
