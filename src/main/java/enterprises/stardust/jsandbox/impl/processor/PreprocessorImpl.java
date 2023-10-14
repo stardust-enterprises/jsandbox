@@ -80,33 +80,31 @@ public class PreprocessorImpl implements Preprocessor {
 
         Path currentOutput = inputJar;
         if (needsProcessing) {
+            currentOutput = transformStore.resolve(originalFilename + "+entryprocess" + ".jar");
             Enumeration<JarEntry> entries = jarFile.entries();
-            boolean modified = false;
             JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(currentOutput));
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
                 JarEntry newEntry = new JarEntry(entry.getName());
                 jarOutputStream.putNextEntry(newEntry);
                 if (!entry.isDirectory()) {
+                    InputStream inputStream = jarFile.getInputStream(entry);
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[1024];
+                    int read;
+                    while ((read = inputStream.read(buffer)) != -1) {
+                        baos.write(buffer, 0, read);
+                    }
+                    buffer = baos.toByteArray();
                     for (JarEntryProcessor processor : processorList) {
                         if (processor.shouldProcess(entry.getName())) {
-                            InputStream inputStream = jarFile.getInputStream(entry);
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            byte[] buffer = new byte[1024];
-                            int read;
-                            while ((read = inputStream.read(buffer)) != -1) {
-                                baos.write(buffer, 0, read);
-                            }
-                            buffer = baos.toByteArray();
-
                             byte[] processed = processor.process(entry.getName(), buffer);
-                            if (processed != null) {
-                                jarOutputStream.write(processed);
-                            } else {
-                                jarOutputStream.write(buffer);
+                            if (processed != null && !Arrays.equals(processed, buffer)) {
+                                buffer = processed;
                             }
                         }
                     }
+                    jarOutputStream.write(buffer);
                 }
                 jarOutputStream.closeEntry();
             }

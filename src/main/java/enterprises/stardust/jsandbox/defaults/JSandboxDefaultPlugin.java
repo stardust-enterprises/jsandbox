@@ -8,6 +8,7 @@ import enterprises.stardust.jsandbox.api.plugin.PluginMetadata;
 import enterprises.stardust.jsandbox.api.processor.Preprocessor;
 import enterprises.stardust.jsandbox.defaults.process.log.JSandboxLoggingJarPostProcessor;
 import enterprises.stardust.jsandbox.defaults.process.log.JSandboxLoggingJarProcessor;
+import enterprises.stardust.jsandbox.defaults.process.restrict.RedirectionTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,9 @@ public class JSandboxDefaultPlugin implements Plugin {
         preprocessor.registerJarProcessor(
                 new JSandboxLoggingJarProcessor(),
                 new JSandboxLoggingJarPostProcessor()
+        );
+        preprocessor.registerEntryProcessor(
+                new RedirectionTransformer()
         );
     }
 }

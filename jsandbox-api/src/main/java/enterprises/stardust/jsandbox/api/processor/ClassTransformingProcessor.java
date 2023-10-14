@@ -5,6 +5,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
+//TODO: this should really be implemented separately so that we can share
+//      the ClassNode instance for all transformers
 public interface ClassTransformingProcessor extends JarEntryProcessor {
     @Override
     default byte @Nullable [] process(@NotNull String entryPath, byte @NotNull [] buffer) {

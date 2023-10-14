@@ -25,6 +25,13 @@ public class InternalClassLoader extends URLClassLoader {
                 throw new ClassNotFoundException(name);
             }
         }
+        // FIXME: Test code to "undo" RedirectionTransformer
+        //        Note: This doesn't seem to work as the following class bypasses this
+        //        java.base/java.lang.invoke.MethodHandleNatives#resolve
+        if (name.startsWith("jsandbox.rt.java.")) {
+            System.out.println(name + " => " + name.substring("jsandbox.rt.".length()));
+            return super.loadClass(name.substring("jsandbox.rt.".length()), resolve);
+        }
         return super.loadClass(name, resolve);
     }
 }
