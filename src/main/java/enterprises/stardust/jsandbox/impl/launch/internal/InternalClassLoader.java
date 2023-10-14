@@ -2,6 +2,7 @@ package enterprises.stardust.jsandbox.impl.launch.internal;
 
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -10,9 +11,12 @@ public class InternalClassLoader extends URLClassLoader {
 
     public InternalClassLoader(URL[] urls, ClassLoader parent) {
         super(urls, parent);
-        this.restrictedPackages.add(
+        Collections.addAll(
+                restrictedPackages,
+
                 // Restrict jsandbox so that it can't detect being in a sandbox
-                "enterprises.stardust.jsandbox."
+                "enterprises.stardust.jsandbox.",
+                "jsandbox.rt.internal."
         );
 
         // TODO: Restrict other packages

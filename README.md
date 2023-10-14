@@ -31,6 +31,11 @@ We also provide the [jsandbox-cli](./jsandbox-cli) module that exposes a command
 - [ ] Sandbox the sandbox launcher itself???? (crazy idea)
 - [ ] Sandbox the JVM itself???? (even crazier idea)
 
+### Bypassing Ideas
+
+- MagicAccessorImpl
+- Unsafe
+
 ## Licensing
 
 This project is licensed under the [ISC License](./LICENSE).
