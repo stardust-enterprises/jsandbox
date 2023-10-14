@@ -12,8 +12,11 @@ public class CliArguments {
     @CommandLine.Option(names = {"--jar", "-j"}, description = "Path to JAR file(s) to add to the runtime classpath", required = true)
     private List<File> jar;
 
-    @CommandLine.Option(names = {"--processor", "-p"}, description = "Path to JAR file(s) to lookup class processor in")
-    private List<File> processor;
+    @CommandLine.Option(names = {"--plugin", "-p"}, description = "Path to JAR file(s) to lookup JSandbox plugins in")
+    private List<File> plugin;
+
+    @CommandLine.Option(names = {"--fork", "-f"}, description = "Use a Forked JVM to run the sandbox")
+    private boolean fork;
 
     @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Display this help message")
     private boolean helpRequested;
@@ -25,7 +28,11 @@ public class CliArguments {
         return jar;
     }
 
-    public List<File> getProcessors() {
-        return processor;
+    public List<File> getPlugins() {
+        return plugin;
+    }
+
+    public boolean shouldFork() {
+        return fork;
     }
 }

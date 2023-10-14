@@ -1,38 +1,34 @@
 package enterprises.stardust.jsandbox.api;
 
-import enterprises.stardust.jsandbox.api.launch.Launcher;
+import enterprises.stardust.jsandbox.api.launch.LaunchResult;
+import enterprises.stardust.jsandbox.api.launch.LaunchType;
+import enterprises.stardust.jsandbox.api.plugin.PluginManager;
+import enterprises.stardust.jsandbox.api.processor.Preprocessor;
 
 import java.io.File;
-import java.net.URI;
-import java.net.URL;
 import java.nio.file.Path;
 
 public interface JSandbox {
     //PermissionManager permissionManager();
-    Launcher launcher();
+    PluginManager pluginManager();
+    Preprocessor preprocessor();
 
-    default void launch(String mainClass, String[] args) throws Throwable {
-        launcher().launch(mainClass, args);
-    }
+    LaunchResult launch(String mainClass, String[] args) throws Throwable;
 
     static Builder builder() {
         return APIService.provider().provideBuilder();
     }
 
     interface Builder {
-        Builder withClasspath(URI... classpath);
-        Builder withClasspath(URL... classpath);
         Builder withClasspath(String... classpath);
         Builder withClasspath(File... classpath);
         Builder withClasspath(Path... classpath);
 
-        Builder withProcessor(URI... classpath);
-        Builder withProcessor(URL... classpath);
-        Builder withProcessor(String... classpath);
-        Builder withProcessor(File... classpath);
-        Builder withProcessor(Path... classpath);
+        Builder withPlugin(String... plugin);
+        Builder withPlugin(File... plugin);
+        Builder withPlugin(Path... plugin);
 
-        Builder fork(boolean fork);
+        Builder launchType(LaunchType launchType);
 
         JSandbox build();
     }

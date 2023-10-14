@@ -1,159 +1,145 @@
 package enterprises.stardust.jsandbox.impl;
 
 import enterprises.stardust.jsandbox.api.JSandbox;
+import enterprises.stardust.jsandbox.api.launch.LaunchContext;
+import enterprises.stardust.jsandbox.api.launch.LaunchResult;
+import enterprises.stardust.jsandbox.api.launch.LaunchType;
 import enterprises.stardust.jsandbox.api.launch.Launcher;
-import enterprises.stardust.jsandbox.impl.launch.ForkLauncher;
-import enterprises.stardust.jsandbox.impl.launch.InternalLauncher;
-import lombok.EqualsAndHashCode;
+import enterprises.stardust.jsandbox.api.plugin.PluginContext;
+import enterprises.stardust.jsandbox.api.plugin.PluginManager;
+import enterprises.stardust.jsandbox.api.plugin.PluginMetadata;
+import enterprises.stardust.jsandbox.api.processor.Preprocessor;
+import enterprises.stardust.jsandbox.impl.launch.LaunchContextImpl;
+import enterprises.stardust.jsandbox.impl.launch.fork.ForkLauncher;
+import enterprises.stardust.jsandbox.impl.launch.internal.InternalLauncher;
+import enterprises.stardust.jsandbox.impl.plugin.PluginContextImpl;
+import enterprises.stardust.jsandbox.impl.plugin.PluginLoader;
+import enterprises.stardust.jsandbox.impl.plugin.PluginManagerImpl;
+import enterprises.stardust.jsandbox.impl.processor.PreprocessorImpl;
 import lombok.NonNull;
-import lombok.ToString;
 
 import java.io.File;
-import java.net.URI;
-import java.net.URL;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-@ToString
-@EqualsAndHashCode
 public final class JSandboxImpl implements JSandbox {
+    private final Set<@NonNull Path> classpath;
+    private final PreprocessorImpl preprocessor;
+    private final PluginManagerImpl pluginManager;
     private final Launcher launcher;
 
-    private JSandboxImpl(Set<@NonNull URI> classpath, Set<@NonNull URI> processors, boolean fork) {
-        this.launcher = fork
-                ? new ForkLauncher(classpath)
-                : new InternalLauncher(classpath);
+    public JSandboxImpl(Set<@NonNull Path> classpath, Set<@NonNull Path> plugins, LaunchType launchType) {
+        this.launcher = launchType == LaunchType.FORKED
+                ? new ForkLauncher()
+                : new InternalLauncher(launchType == LaunchType.THREADED);
+        this.preprocessor = new PreprocessorImpl();
+
+        // Load Plugins
+        PluginLoader pluginLoader = new PluginLoader(
+                this.pluginManager = new PluginManagerImpl(),
+                plugins
+        );
+        pluginLoader.loadPlugins();
+        for (PluginMetadata loadedPlugin : this.pluginManager.getLoadedPlugins()) {
+            PluginContext context = new PluginContextImpl(
+                    this,
+                    launcher,
+                    loadedPlugin
+            );
+            loadedPlugin.plugin().install(context);
+        }
+
+        // Run Preprocessors
+        this.classpath = preprocessor.runProcessors(classpath);
     }
 
     @Override
-    public Launcher launcher() {
-        return this.launcher;
+    public LaunchResult launch(String mainClass, String[] args) throws Throwable {
+        LaunchContext context = new LaunchContextImpl(
+                mainClass,
+                Collections.unmodifiableSet(classpath),
+                Arrays.asList(args),
+                LaunchType.DIRECT
+        );
+        return launcher.launch(context);
+    }
+
+    @Override
+    public PluginManager pluginManager() {
+        return pluginManager;
+    }
+
+    @Override
+    public Preprocessor preprocessor() {
+        return preprocessor;
     }
 
     public static class Builder implements JSandbox.Builder {
-        private final Set<URI> classpath = new HashSet<>();
-        private final Set<URI> processors = new HashSet<>();
-        private boolean fork = false;
-
-        @Override
-        public JSandbox.Builder withClasspath(URI... classpath) {
-            this.classpath.addAll(Arrays.asList(classpath));
-            return this;
-        }
-
-        @Override
-        public JSandbox.Builder withClasspath(URL... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (URL url : classpath) {
-                try {
-                    uris.add(url.toURI());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withClasspath(uris.toArray(new URI[0]));
-        }
+        private final Set<Path> classpath = new HashSet<>();
+        private final Set<Path> plugins = new HashSet<>();
+        private LaunchType launchType;
 
         @Override
         public JSandbox.Builder withClasspath(String... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (String url : classpath) {
-                try {
-                    uris.add(new URI(url));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withClasspath(uris.toArray(new URI[0]));
+            this.classpath.addAll(
+                    Arrays.stream(classpath)
+                            .map(File::new)
+                            .map(File::toPath)
+                            .collect(Collectors.toList())
+            );
+            return this;
         }
 
         @Override
         public JSandbox.Builder withClasspath(File... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (File url : classpath) {
-                try {
-                    uris.add(url.toURI());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withClasspath(uris.toArray(new URI[0]));
-        }
-
-        @Override
-        public JSandbox.Builder withClasspath(Path... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (Path url : classpath) {
-                try {
-                    uris.add(url.toUri());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withClasspath(uris.toArray(new URI[0]));
-        }
-
-        @Override
-        public JSandbox.Builder withProcessor(URI... classpath) {
-            this.processors.addAll(Arrays.asList(classpath));
+            this.classpath.addAll(
+                    Arrays.stream(classpath)
+                            .map(File::toPath)
+                            .collect(Collectors.toList())
+            );
             return this;
         }
 
         @Override
-        public JSandbox.Builder withProcessor(URL... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (URL url : classpath) {
-                try {
-                    uris.add(url.toURI());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withProcessor(uris.toArray(new URI[0]));
+        public JSandbox.Builder withClasspath(Path... classpath) {
+            Collections.addAll(this.classpath, classpath);
+            return this;
         }
 
         @Override
-        public JSandbox.Builder withProcessor(String... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (String url : classpath) {
-                try {
-                    uris.add(new URI(url));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withProcessor(uris.toArray(new URI[0]));
+        public JSandbox.Builder withPlugin(String... plugin) {
+            this.plugins.addAll(
+                    Arrays.stream(plugin)
+                            .map(File::new)
+                            .map(File::toPath)
+                            .collect(Collectors.toList())
+            );
+            return this;
         }
 
         @Override
-        public JSandbox.Builder withProcessor(File... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (File url : classpath) {
-                try {
-                    uris.add(url.toURI());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withProcessor(uris.toArray(new URI[0]));
+        public JSandbox.Builder withPlugin(File... plugin) {
+            this.plugins.addAll(
+                    Arrays.stream(plugin)
+                            .map(File::toPath)
+                            .collect(Collectors.toList())
+            );
+            return this;
         }
 
         @Override
-        public JSandbox.Builder withProcessor(Path... classpath) {
-            List<URI> uris = new ArrayList<>();
-            for (Path url : classpath) {
-                try {
-                    uris.add(url.toUri());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return this.withProcessor(uris.toArray(new URI[0]));
+        public JSandbox.Builder withPlugin(Path... plugin) {
+            Collections.addAll(this.plugins, plugin);
+            return this;
         }
 
         @Override
-        public JSandbox.Builder fork(boolean fork) {
-            this.fork = fork;
+        public JSandbox.Builder launchType(LaunchType launchType) {
+            this.launchType = launchType;
             return this;
         }
 
@@ -161,8 +147,8 @@ public final class JSandboxImpl implements JSandbox {
         public JSandbox build() {
             return new JSandboxImpl(
                     Collections.unmodifiableSet(this.classpath),
-                    Collections.unmodifiableSet(this.processors),
-                    this.fork
+                    Collections.unmodifiableSet(this.plugins),
+                    this.launchType
             );
         }
     }

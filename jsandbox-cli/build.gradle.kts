@@ -26,6 +26,7 @@ dependencies {
     include(project(":"))
 
     include("info.picocli:picocli:4.7.5")
+    include("ch.qos.logback:logback-classic:1.4.11")
 }
 
 application {
@@ -33,6 +34,10 @@ application {
 }
 
 tasks {
+    withType<CreateStartScripts> {
+        applicationName = "jsandbox"
+    }
+
     jar {
         val mainClass = application.mainClass.get()
         manifest.attributes["Main-Class"] = mainClass

@@ -1,9 +1,11 @@
 package enterprises.stardust.jsandbox.api.launch;
 
-import enterprises.stardust.jsandbox.api.processor.JarProcessor;
-
 public interface Launcher {
-    LaunchResult launch(String mainClass, String[] args) throws Throwable;
+    LaunchResult launch(LaunchContext context) throws Throwable;
 
-    JarProcessor jarProcessor();
+    void registerLaunchHook(Hook... hooks);
+
+    interface Hook {
+        void preLaunch(LaunchContext context);
+    }
 }

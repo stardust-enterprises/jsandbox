@@ -1,7 +1,10 @@
 package enterprises.stardust.jsandbox.cli;
 
+import enterprises.stardust.jsandbox.api.launch.LaunchType;
 import enterprises.stardust.jsandbox.impl.JSandboxImpl;
 import enterprises.stardust.jsandbox.api.JSandbox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -9,6 +12,8 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] programArgs) {
+        Logger logger = LoggerFactory.getLogger("JSandbox/CLI");
+
         //TODO: permission options
         CliArguments args = new CliArguments();
         CommandLine.ParseResult result;
@@ -17,15 +22,15 @@ public class Main {
                     .setUnmatchedArgumentsAllowed(true)
                     .parseArgs(programArgs);
         } catch (Exception e) {
-            System.err.println("CLI Error: " + e.getMessage());
+            logger.error("An error occured parsing arguments.");
             CommandLine.usage(args, System.out);
             System.exit(1);
             return;
         }
+
         if (!result.errors().isEmpty()) {
             for (Exception error : result.errors()) {
-                System.err.println("CLI Error: " + error.getMessage());
-                error.printStackTrace(System.err);
+                logger.error("An error occured parsing arguments.", error);
             }
             System.exit(1);
             return;
@@ -48,38 +53,38 @@ public class Main {
         }
 
         if (args.getJars().isEmpty()) {
-            System.err.println("No JARs specified, aborting.");
+            logger.error("No JARs specified, aborting.");
             System.exit(1);
             return;
         }
 
         List<String> noOpt = result.unmatched();
         if (noOpt.isEmpty()) {
-            System.err.println("No main class specified, aborting.");
+            logger.error("No main class specified, aborting.");
             System.exit(2);
             return;
         }
         String mainClass = noOpt.get(0);
         String[] arguments = noOpt.subList(1, noOpt.size()).toArray(new String[0]);
 
+        logger.info("Preparing sandbox...");
         JSandbox sandbox = JSandbox.builder()
                 .withClasspath(args.getJars().toArray(new File[0]))
-                .withProcessor(
-                        args.getProcessors() == null
+                .withPlugin(
+                        args.getPlugins() == null
                                 ? new File[0]
-                                : args.getProcessors().toArray(new File[0])
+                                : args.getPlugins().toArray(new File[0])
                 )
-                .fork(false)
+                .launchType(LaunchType.DIRECT)
                 .build();
         try {
-            System.out.println("Launching class " + mainClass + ", args=\"" + String.join(" ", arguments) + "\"");
+            logger.info("Launching {} (args: {})", mainClass, String.join(" ", arguments));
             sandbox.launch(mainClass, arguments);
         } catch (ClassNotFoundException e) {
-            System.err.println("Class " + mainClass + " not found.");
+            logger.error("Class {} not found.", mainClass);
             System.exit(3);
         } catch (Throwable e) {
-            System.err.println("Error launching class " + mainClass + ": " + e.getMessage());
-            e.printStackTrace(System.err);
+            logger.error("Error launching class {}", mainClass, e);
             System.exit(4);
         }
     }

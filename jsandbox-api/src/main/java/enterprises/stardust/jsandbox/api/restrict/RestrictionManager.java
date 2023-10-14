@@ -1,6 +1,9 @@
 package enterprises.stardust.jsandbox.api.restrict;
 
 public interface RestrictionManager {
+    //TODO: move this to
+    // enterprises.stardust.jsandbox.defaults.restrict
+
     Restriction REFLECT = new Restriction("reflect");
     Restriction CLASS_REFLECT = new Restriction("class_reflect", REFLECT);
 
